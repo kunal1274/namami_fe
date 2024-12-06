@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 
 import { FaFilter } from "react-icons/fa";
+import { Route, Routes } from "react-router-dom";
 
 const data = Array.from({ length: 50 }, (_, i) => ({
   id: `0000${i + 1}`,
@@ -278,7 +279,7 @@ const SidebarItem = ({ icon, label, isOpen }) => (
   </div>
 );
 
-const App = () => {
+const AppKunalVersionV0 = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
   return (
@@ -293,7 +294,7 @@ const App = () => {
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header />
         <div className="p-6 overflow-hidden">
-          <h1 className="text-2xl font-bold mb-4">Order Lists</h1>
+          <h1 className="text-2xl font-bold mb-4">Customer Lists</h1>
           <FilterBar />
           <div className="overflow-x-auto">
             <Table />
@@ -304,4 +305,14 @@ const App = () => {
   );
 };
 
-export default App;
+const AppKunalVersion = () => {
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<AppKunalVersionV0 />} />
+      </Routes>
+    </>
+  );
+};
+
+export default AppKunalVersion;
