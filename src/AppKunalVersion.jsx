@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const baseUrl = "https://befr8n.vercel.app/fms/api/v0/customer";
 
 import {
   FaBars,
@@ -26,51 +29,68 @@ const data = Array.from({ length: 50 }, (_, i) => ({
 }));
 
 const statusColors = {
+  Approved: "text-green-500 bg-green-100",
   Completed: "text-green-500 bg-green-100",
   Processing: "text-blue-500 bg-blue-100",
   Rejected: "text-red-500 bg-red-100",
   "On Hold": "text-orange-500 bg-orange-100",
   "In Transit": "text-purple-500 bg-purple-100",
+  Pending: "text-orange-500 bg-orange-100",
 };
 
-const Table = () => {
+const Table = ({ tableData }) => {
   return (
     <div className="overflow-x-auto max-h-96 bg-white rounded-md shadow">
       <table className="min-w-full table-auto divide-y divide-gray-200">
         <thead className="bg-gray-100 sticky top-0 z-20">
           <tr>
-            {["ID", "NAME", "ADDRESS", "DATE", "TYPE", "STATUS"].map(
-              (header, index) => (
-                <th
-                  key={header}
-                  className={`px-6 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap ${
-                    index === 0 ? "sticky top-0 left-0 bg-gray-200 z-30" : ""
-                  }`}
-                >
-                  {header}
-                </th>
-              )
-            )}
+            {[
+              "CODE",
+              "NAME",
+              "CONTACT",
+              "ADDRESS",
+              "CURRENCY",
+              "PAN NUM",
+              "REG NUM",
+              "ACTIVE",
+              "STATUS",
+            ].map((header, index) => (
+              <th
+                key={header}
+                className={`px-6 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap ${
+                  index === 0 ? "sticky top-0 left-0 bg-gray-200 z-30" : ""
+                }`}
+              >
+                {header}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {data.map((row) => (
-            <tr key={row.id}>
+          {tableData.map((row) => (
+            <tr key={row.code}>
               {/* Sticky First Column */}
               <td className="px-6 py-3 whitespace-nowrap sticky left-0 bg-white z-10 border-r">
-                {row.id}
+                {row.code}
               </td>
               <td className="px-6 py-3 whitespace-nowrap">{row.name}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{row.contactNum}</td>
               <td className="px-6 py-3 whitespace-nowrap">{row.address}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{row.date}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{row.type}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{row.currency}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{row.panNum}</td>
+              <td className="px-6 py-3 whitespace-nowrap">
+                {row.registrationNum}
+              </td>
+              <td className="px-6 py-3 whitespace-nowrap">
+                {row.active ? "Yes" : "No"}
+              </td>
               <td className="px-6 py-3 whitespace-nowrap">
                 <span
                   className={`px-3 py-1 rounded-full text-xs ${
-                    statusColors[row.status]
+                    statusColors[row.active ? "Approved" : "Pending"]
                   }`}
                 >
-                  {row.status}
+                  {row.active ? "Approved" : "Pending"}
                 </span>
               </td>
             </tr>
@@ -279,7 +299,42 @@ const SidebarItem = ({ icon, label, isOpen }) => (
   </div>
 );
 
-const AppKunalVersionV0 = () => {
+const CustomerListTable = () => {
+  const [customerList, setCustomerList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const listName = "Customer Lists";
+
+  // Fetch All Customers
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        setLoading(true);
+        const response = await axios.get(baseUrl, {
+          withCredentials: false,
+        });
+        console.log(response);
+        setCustomerList(response.data.data);
+        setLoading(false);
+      } catch (error) {
+        console.log(error);
+        setLoading(false);
+        setMessage("Failed to load customer data.");
+      }
+    }
+    loadCustomers();
+  }, []);
+
+  return (
+    <>
+      <h1 className="text-2xl font-bold mb-4">{listName}</h1>
+      <FilterBar />
+      <div className="overflow-x-auto">
+        <Table tableData={customerList} />
+      </div>
+    </>
+  );
+};
+const Dashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
   return (
@@ -294,11 +349,12 @@ const AppKunalVersionV0 = () => {
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header />
         <div className="p-6 overflow-hidden">
-          <h1 className="text-2xl font-bold mb-4">Customer Lists</h1>
+          {/* <h1 className="text-2xl font-bold mb-4">Customer Lists</h1>
           <FilterBar />
           <div className="overflow-x-auto">
             <Table />
-          </div>
+          </div> */}
+          <CustomerListTable />
         </div>
       </div>
     </div>
@@ -309,7 +365,7 @@ const AppKunalVersion = () => {
   return (
     <>
       <Routes>
-        <Route path="/" element={<AppKunalVersionV0 />} />
+        <Route path="/" element={<Dashboard />} />
       </Routes>
     </>
   );
