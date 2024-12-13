@@ -6,27 +6,34 @@ import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
 import { useParams } from "react-router-dom";
 import CustomerDetail from "./CustomerViewPage";
+import { FaFilter } from "react-icons/fa";
 
 const baseUrl = "https://befr8n.vercel.app/fms/api/v0/customer";
 
 function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
-
   const [customerList, setCustomerList] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState([]);
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [viewingCustomerId, setViewingCustomerId] = useState(null);
- 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [view, setView] = useState("list");
   const { id } = useParams();
-
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const filterCustomers = (customers, search) => {
-    return customers.filter((customer) =>
-      customer.name.toLowerCase().includes(search.toLowerCase()) ||
-      customer.code.toLowerCase().includes(search.toLowerCase())
+    return customers.filter(
+      (customer) =>
+        customer.name.toLowerCase().includes(search.toLowerCase()) ||
+        customer.code.toLowerCase().includes(search.toLowerCase())
     );
+  };
+
+  // Function to reset filters and search input
+  const resetFilters = (setSearch, setFilters) => {
+    console.log("Resetting filters");
+    setSearch("");
+    setFilters({ category: "", dateRange: "" });
   };
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -85,14 +92,11 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
   }, []);
 
   // Handle Input Change
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewCustomer((prev) => ({ ...prev, [name]: value }));
-  };
 
   // Go back to customer list view
   const goBack = () => {
     setViewingCustomerId(null);
+    window.location.reload();
   };
 
   const toggleSelectAll = () => {
@@ -108,22 +112,24 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
       alert("No customers selected to delete.");
       return;
     }
-  
-    const confirmation = window.confirm("Are you sure you want to delete the selected customers?");
+
+    const confirmation = window.confirm(
+      "Are you sure you want to delete the selected customers?"
+    );
     if (!confirmation) return;
-  
+
     try {
       for (let customerId of selectedCustomers) {
         await axios.delete(`${baseUrl}/${customerId}`, {
           withCredentials: false, // Add if needed
         });
       }
-  
+
       // Update the state to remove deleted customers
       setCustomerList((prevList) =>
         prevList.filter((customer) => !selectedCustomers.includes(customer._id))
       );
-  
+
       // Clear the selected customers array
       setSelectedCustomers([]);
       alert("Selected customers deleted successfully!");
@@ -132,7 +138,6 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
       alert("Failed to delete selected customers. Please try again.");
     }
   };
-  
 
   const handleCheckboxChange = (customerId) => {
     console.log("Checkbox toggled for Customer ID:", customerId);
@@ -144,51 +149,34 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
     );
 
     // Find the customer details by customerId and log it
-    const customer = customerList.find((customer) => customer._id === customerId);
+    const customer = customerList.find(
+      (customer) => customer._id === customerId
+    );
     if (customer) {
       console.log("Customer Details:", customer); // Log customer details to the console
     }
   };
 
-  const handleViewSelectedCustomers = async () => {
-    if (selectedCustomers.length === 0) {
-      alert("No customers selected.");
-      return;
-    }
-
-    try {
-      const customerDetails = [];
-      for (let customerId of selectedCustomers) {
-        const response = await axios.get(`${baseUrl}/${customerId}`);
-        customerDetails.push(response.data.data);
-      }
-      setSelectedCustomer(customerDetails);
-      setView("view"); // Switch to view page
-    } catch (error) {
-      console.error("Error fetching customer details:", error);
-      alert("Failed to fetch customer details. Please try again.");
-    }
-  };
-
-  // Import data from Excel
-  const importFromExcel = useCallback((e) => {
-    const file = e.target.files[0];
-    if (!file) return alert("Please select a valid Excel file.");
-
+  const importFromExcel = (e) => {
+    const file = e.target.files[0]; // Get the selected file
     const reader = new FileReader();
+
     reader.onload = (event) => {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const importedData = XLSX.utils.sheet_to_json(worksheet);
-
-      console.log("Imported Data:", importedData); // Debug imported data
-      setCustomerList((prevCustomers) => [...prevCustomers, ...importedData]);
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" }); // Parse the file
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]; // Get the first sheet
+        const importedData = XLSX.utils.sheet_to_json(worksheet); // Convert sheet data to JSON
+        setCustomerList((prevCustomers) => [...prevCustomers, ...importedData]); // Append to the list
+        alert("Data imported successfully!");
+      } catch (error) {
+        console.error("Failed to import data:", error);
+        alert("An error occurred while importing the file.");
+      }
     };
-    reader.readAsArrayBuffer(file);
-  }, []);
 
+    reader.readAsArrayBuffer(file); // Read the file as an array buffer
+  };
   const exportToExcel = useCallback(() => {
     if (!customerList.length) {
       alert("No data available to export!");
@@ -211,7 +199,12 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
   const generatePDF = useCallback(() => {
     console.log("PDF button clicked"); // Debugging log
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF({
+        orientation: "landscape", // Use landscape orientation for better width handling
+        unit: "pt", // Set measurement unit to points
+        format: "A4", // Set paper size to A4
+      });
+
       const tableColumn = [
         "#",
         "Customer Account",
@@ -226,21 +219,47 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
 
       const tableRows = customerList.map((customer, index) => [
         index + 1,
-        customer.code || "",
-        customer.name || "",
-        customer.address || "",
-        customer.contactNum || "",
-        customer.currency || "",
-        customer.registrationNum || "",
-        customer.panNum || "",
+        customer.code || "N/A",
+        customer.name || "N/A",
+        customer.address || "N/A",
+        customer.contactNum || "N/A",
+        customer.currency || "N/A",
+        customer.registrationNum || "N/A",
+        customer.panNum || "N/A",
         customer.active ? "Yes" : "No",
       ]);
 
-      doc.text("Customer List", 14, 20);
+      // Set title and custom formatting
+      doc.setFontSize(18);
+      doc.text("Customer List", doc.internal.pageSize.width / 2, 40, {
+        align: "center", // Center-align the title
+      });
+
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 30,
+        startY: 60, // Start table below the title
+        headStyles: {
+          fillColor: [41, 128, 185], // Blue header color
+          textColor: [255, 255, 255], // White text color
+          halign: "center", // Center-align header text
+        },
+        bodyStyles: {
+          halign: "center", // Center-align body text
+          fontSize: 10, // Set font size for better readability
+        },
+        margin: { top: 50, left: 30, right: 30 }, // Add margins
+        columnStyles: {
+          0: { halign: "center", cellWidth: 40 }, // Adjust for the index column
+          1: { halign: "left", cellWidth: 80 }, // Customer Account
+          2: { halign: "left", cellWidth: 100 }, // Name
+          3: { halign: "left", cellWidth: 150 }, // Address
+          4: { halign: "center", cellWidth: 90 }, // Contact No.
+          5: { halign: "center", cellWidth: 70 }, // Currency
+          6: { halign: "center", cellWidth: 100 }, // Registration No.
+          7: { halign: "center", cellWidth: 70 }, // PAN
+          8: { halign: "center", cellWidth: 50 }, // Active
+        },
       });
 
       doc.save("customer_list.pdf");
@@ -254,76 +273,131 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
   console.log(customerList.length);
 
   const handleCustomerClick = (customerId) => {
-    console.log("customer.id")
+    console.log("customer.id");
     setViewingCustomerId(customerId);
   };
 
+  const toggleView = (targetView) => {
+    if (view !== targetView) {
+      setView(targetView);
+      console.log("Toggle function working: View changed to", targetView);
+    } else {
+      console.log("Error in running function: View did not change");
+    }
+  };
+
   return (
-    <div className="bg-blue-400 p-8 min-h-screen">
-    <p>This is my customer list page </p>
-        <div className=" rounded-full mb-5">
+    <div className="bg-grey-400 p-8 min-h-screen">
+      <div className=" rounded-full mb-5">
         {viewingCustomerId ? (
-          <CustomerDetail customerId={viewingCustomerId} goBack={goBack} />
+          <CustomerDetail
+            toggleView={toggleView}
+            customerId={viewingCustomerId}
+            goBack={goBack}
+          />
         ) : (
           <>
             {/* Header */}
-            <header className="text-center bg-white py-2 border border-blue-300 rounded-full mb-5">
-        <h2 className="text-lg font-bold text-blue-500">Customer List</h2>
-      </header>
+            <div className="flex justify-between space-x-3">
+              <h1 className="text-2xl font-bold mb-4">Customer Lists</h1>
 
-            {/* Action Buttons */}
-            <div className="flex justify-between rounded-full mb-5">
-              <div className="px-2 h-10 border border-green-500 bg-white rounded-full py-2">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  aria-label="Search"
-                  className="ml-2 outline-none bg-transparent"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex justify-end gap-4">
-                <button
-                  onClick={handleAddCustomer}
-                  className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
-                >
-                  + Add
-                </button>
-                <button
-                  onClick={handleDeleteSelectedCustomers}
-                  disabled={selectedCustomers.length === 0}
-                  className={`h-10 px-4 py-2 border border-green-500 bg-white rounded-md ${
-                    selectedCustomers.length > 0
-                      ? 'hover:bg-gray-100'
-                      : 'opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={generatePDF}
-                  className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
-                >
-                  PDF
-                </button>
-                <button
-                  onClick={exportToExcel}
-                  className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
-                >
-                  Export
-                </button>
-                <label className="border h-10 border-green-500 bg-white rounded-md py-2 px-4">
-                  <input
-                    type="file"
-                    accept=".xls,.xlsx"
-                    onChange={importFromExcel}
-                    className="hidden"
-                  />
-                  Import
-                </label>
+              <div className="flex justify-between rounded-full mb-5">
+                <div className="flex justify-end gap-4">
+                 
+
+                  <button
+                    onClick={handleAddCustomer}
+                    className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
+                  >
+                    + Add
+                  </button>
+                  <button
+                    onClick={handleDeleteSelectedCustomers}
+                    disabled={selectedCustomers.length === 0}
+                    className={`h-10 px-4 py-2 border border-green-500 bg-white rounded-md ${
+                      selectedCustomers.length > 0
+                        ? "hover:bg-gray-100"
+                        : "opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={generatePDF}
+                    className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={exportToExcel}
+                    className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
+                  >
+                    Export
+                  </button>
+                  <label className="border h-10 border-green-500 bg-white rounded-md py-2 px-4">
+                    <input
+                      type="file"
+                      accept=".xls,.xlsx"
+                      onChange={importFromExcel}
+                      className="hidden"
+                    />
+                    Import
+                  </label>
+                </div>
               </div>
             </div>
+            <div className="flex flex-wrap items-center justify-between p-4 bg-white rounded-md shadow mb-6 space-y-4 md:space-y-0 md:space-x-4">
+              {/* Left Section: Filters and Search */}
+              <div className="flex flex-wrap items-center space-y-4 md:space-y-0 md:space-x-4">
+                {/* Filter Button */}
+                <button className="flex items-center px-3 py-2 bg-gray-200 rounded">
+                  <FaFilter className="mr-2" />
+                  Filter By
+                </button>
+
+                {/* Date Select Dropdown */}
+                <select className="outline-none border rounded px-3 py-2">
+                  <option>Date</option>
+                  <option>Order Type</option>
+                </select>
+
+                {/* Order Status Dropdown */}
+                <select className="outline-none border rounded px-3 py-2">
+                  <option>Order Status</option>
+                  <option>Completed</option>
+                  <option>Pending</option>
+                </select>
+
+                {/* Search Bar */}
+                <div className="flex items-center  space-x-2 w-full md:w-auto">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    aria-label="Search"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="w-full md:w-60 p-2 border rounded-l-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => alert(`Searching for "${searchTerm}"`)}
+                    className="px-2 h-10 border border-green-500 bg-zinc-200 rounded-full py-2"
+                  >
+                    Search
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Section: Reset Button */}
+              <div className="w-full md:w-auto flex justify-end">
+                <button
+                  className="text-red-500"
+                  onClick={() => resetFilters(setSearch, setFilters)} // Pass setSearch and setFilters
+                >
+                  Reset Filter
+                </button>
+              </div>
+            </div>
+            {/* Action Buttons */}
 
             {/* Customer Table */}
             <div className="border border-green-500 rounded-lg bg-white p-4 overflow-hidden">
@@ -334,24 +408,44 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
                       <th className="px-4 py-2 border border-gray-300 text-left">
                         <input
                           type="checkbox"
-                          checked={selectedCustomers.length === customerList.length}
+                          checked={
+                            selectedCustomers.length === customerList.length
+                          }
                           onChange={toggleSelectAll}
                         />
                       </th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Customer Account</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Name</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Registration No.</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Address</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Contact No.</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Currency</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">PAN</th>
-                      <th className="px-4 py-2 border border-gray-300 text-left">Active</th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Customer Account
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Registration No.
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Address
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Contact No.
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Currency
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        PAN
+                      </th>
+                      <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
+                        Active
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {customerList
                       .filter((customer) =>
-                        customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+                        customer.name
+                          .toLowerCase()
+                          .includes(searchTerm.toLowerCase())
                       )
                       .map((customer) => (
                         <tr key={customer._id} className="hover:bg-gray-50">
@@ -359,22 +453,40 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
                             <input
                               type="checkbox"
                               checked={selectedCustomers.includes(customer._id)}
-                              onChange={() => handleCheckboxChange(customer._id)}
+                              onChange={() =>
+                                handleCheckboxChange(customer._id)
+                              }
                             />
                           </td>
                           <td>
-                    <button onClick={() => handleCustomerClick(customer._id)}>
-                      {customer.code}
-                    </button>
-                  </td>
-                          <td className="border px-4 py-2">{customer.name}</td>
-                          <td className="border px-4 py-2">{customer.registrationNum}</td>
-                          <td className="border px-4 py-2">{customer.address}</td>
-                          <td className="border px-4 py-2">{customer.contactNum}</td>
-                          <td className="border px-4 py-2">{customer.currency}</td>
-                          <td className="border px-4 py-2">{customer.panNum}</td>
-                          <td className="border px-4 py-2">{customer.active ? 'Yes' : 'No'}</td>
-                          
+                            <button
+                              onClick={() => handleCustomerClick(customer._id)}
+                            >
+                              {customer.code}
+                            </button>
+                          </td>
+
+                          <td className="px-6 py-3 truncate">
+                            {customer.name}
+                          </td>
+                          <td className="px-6 py-3 whitespace-normal truncate">
+                            {customer.contactNum}
+                          </td>
+                          <td className="px-6 py-3 whitespace-normal truncate">
+                            {customer.address}
+                          </td>
+                          <td className="px-6 py-3 truncate">
+                            {customer.currency}
+                          </td>
+                          <td className="px-6 py-3 truncate">
+                            {customer.panNum}
+                          </td>
+                          <td className="px-6 py-3 truncate">
+                            {customer.registrationNum}
+                          </td>
+                          <td className="px-6 py-3 truncate">
+                            {customer.active ? "Yes" : "No"}
+                          </td>
                         </tr>
                       ))}
                   </tbody>
@@ -386,6 +498,6 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
       </div>
     </div>
   );
-};
+}
 
 export default CustomerList;
