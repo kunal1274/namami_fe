@@ -260,6 +260,7 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
 
   return (
     <div className="bg-blue-400 p-8 min-h-screen">
+    <p>This is my customer list page </p>
         <div className=" rounded-full mb-5">
         {viewingCustomerId ? (
           <CustomerDetail customerId={viewingCustomerId} goBack={goBack} />
