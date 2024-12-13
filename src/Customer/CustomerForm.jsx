@@ -128,6 +128,7 @@ const handleInputChange = (e) => {
   return (
     <>
     <div className="bg-blue-400 mt-44 p-8 min-h-screen">
+      <p>this is customer form page </p>
       <div className="bg-slate-50 rounded-lg p-6">
         <header className="text-center bg-white py-2 border border-blue-300 rounded-full mb-5">
           <h2 className="text-lg font-bold text-blue-500">Customer Creation Form </h2>
