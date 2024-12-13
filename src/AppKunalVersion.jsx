@@ -3,6 +3,19 @@ import axios from "axios";
 import { IoPeopleCircleSharp } from "react-icons/io5";
 import { FaPeopleGroup } from "react-icons/fa6";
 
+import { useCallback } from "react";
+import {
+  ReactFlow,
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+} from "@xyflow/react";
+
+import "@xyflow/react/dist/style.css";
+
 const baseUrl = "https://befr8n.vercel.app/fms/api/v0/customer";
 
 import {
@@ -15,6 +28,7 @@ import {
   FaSignOutAlt,
   FaList,
   FaGrin,
+  FaAccusoft,
 } from "react-icons/fa";
 
 import { FaFilter } from "react-icons/fa";
@@ -41,6 +55,28 @@ const statusColors = {
   "In Transit": "text-purple-500 bg-purple-100",
   Pending: "text-orange-500 bg-orange-100",
 };
+
+const initialNodes = [
+  {
+    id: "1",
+    type: "input",
+    data: { label: "Start" },
+    position: { x: 250, y: 0 },
+  },
+  { id: "2", data: { label: "Middle" }, position: { x: 250, y: 150 } },
+  {
+    id: "3",
+    type: "output",
+    data: { label: "End" },
+    position: { x: 250, y: 300 },
+  },
+];
+
+const initialEdges = [
+  { id: "e1-2", source: "1", target: "2", animated: true },
+  { id: "e2-3", source: "2", target: "3" },
+  { id: "e1-3", source: "1", target: "3" },
+];
 
 const Table = ({
   tableData,
@@ -566,6 +602,13 @@ const HomePage = () => {
           <FaPeopleGroup />
           <h5>Vendors</h5>
         </Link>
+        <Link
+          to="/reactflow"
+          className="text-blue-500 underline hover:text-blue-700 flex flex-row space-x-1 items-center"
+        >
+          <FaAccusoft />
+          <h5>React Flow</h5>
+        </Link>
       </div>
     </div>
   );
@@ -1081,6 +1124,7 @@ const AppKunalVersion = () => {
           <Route path="customers" element={<CustomerListTable />} />{" "}
           {/* Default route */}
           <Route path="customers/create" element={<AppCreateContact />} />
+          <Route path="reactflow" element={<AppReactFlow />} />
           <Route path="*" element={<PageNotFound />} />
         </Route>
 
@@ -1125,5 +1169,60 @@ const PageNotFound = () => {
     </div>
   );
 };
+
+function AppReactFlow() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
+  return (
+    <div style={{ width: "100vw", height: "100vh" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+        panOnScroll
+        zoomOnScroll
+      >
+        <Controls />
+        <MiniMap />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
+    </div>
+  );
+}
+
+function AppReactFlowV1() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
+  return (
+    <div style={{ width: "60vw", height: "50vh" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+      >
+        <Controls />
+        <MiniMap />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
+    </div>
+  );
+}
 
 export default AppKunalVersion;
