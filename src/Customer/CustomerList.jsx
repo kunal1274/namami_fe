@@ -10,9 +10,10 @@ import { FaFilter } from "react-icons/fa";
 
 const baseUrl = "https://befr8n.vercel.app/fms/api/v0/customer";
 
-function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
+function CustomerList({ handleAddCustomer }) {
   const [customerList, setCustomerList] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState([]);
+  const [selectedOption, setSelectedOption] = useState("All");
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [viewingCustomerId, setViewingCustomerId] = useState(null);
   const [search, setSearch] = useState("");
@@ -21,7 +22,8 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
   const { id } = useParams();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const filterCustomers = (customers, search) => {
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const filterCustomer = (customers, search) => {
     return customers.filter(
       (customer) =>
         customer.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -30,15 +32,11 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
   };
 
   // Function to reset filters and search input
-  const resetFilters = (setSearch, setFilters) => {
-    console.log("Resetting filters");
-    setSearch("");
-    setFilters({ category: "", dateRange: "" });
-  };
+
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
-  const filteredCustomers = filterCustomers(customerList, searchTerm);
+  const filteredCustomer = filterCustomer(customerList, searchTerm);
   const fetchCustomer = async (customerId) => {
     if (!customerId.trim()) {
       setError("Customer ID cannot be empty.");
@@ -286,6 +284,34 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
     }
   };
 
+  const renderOptions = () => {
+    return (
+      <>
+        <option value="All">All</option>
+        <option value="yes">Active</option>
+        <option value="no">Inactive</option>
+      </>
+    );
+  };
+
+  const handleFilterChange = (e) => {
+    const value = e.target.value;
+    setSelectedOption(value);
+    if (value === "All") {
+      setFilteredCustomers(customerList);
+    } else {
+      const isActive = value === "yes";
+      setFilteredCustomers(
+        customerList.filter((customer) => customer.active === isActive)
+      );
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedOption("All");
+    setFilteredCustomers(customerList);
+  };
   return (
     <div className="bg-grey-400 p-8 min-h-screen">
       <div className=" rounded-full mb-5">
@@ -303,8 +329,6 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
 
               <div className="flex justify-between rounded-full mb-5">
                 <div className="flex justify-end gap-4">
-                 
-
                   <button
                     onClick={handleAddCustomer}
                     className="h-10 px-4 py-2 border border-green-500 bg-white rounded-md hover:bg-gray-100"
@@ -362,12 +386,14 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
                 </select>
 
                 {/* Order Status Dropdown */}
-                <select className="outline-none border rounded px-3 py-2">
-                  <option>Order Status</option>
-                  <option>Completed</option>
-                  <option>Pending</option>
-                </select>
-
+                <label htmlFor="active-status" className="sr-only">
+                  Filter by Active Status
+                </label>
+                <select value={selectedOption} onChange={handleFilterChange} className="select select-bordered">
+              <option value="All">All</option>
+              <option value="yes">Active</option>
+              <option value="no">Inactive</option>
+            </select>
                 {/* Search Bar */}
                 <div className="flex items-center  space-x-2 w-full md:w-auto">
                   <input
@@ -421,19 +447,19 @@ function CustomerList({ customer, handleAddCustomer, handleViewCustomer }) {
                         Name
                       </th>
                       <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
-                        Registration No.
+                      Contact No.  
                       </th>
                       <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
                         Address
                       </th>
                       <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
-                        Contact No.
+                      Currency   
                       </th>
                       <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
-                        Currency
+                      PAN
                       </th>
                       <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
-                        PAN
+                      Registration No.    
                       </th>
                       <th className="px-6 py-3 bg-gray-100 text-left text-sm font-medium text-gray-700">
                         Active
