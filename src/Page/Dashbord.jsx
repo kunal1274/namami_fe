@@ -16,25 +16,27 @@ const Dashboard = () => {
 
   return (
     <div className="flex justify-center container_app">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={isSidebarOpen}
-        toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
-        onNavigate={handleNavigation} // Pass navigation handler to Sidebar
-      />
+    {/* Sidebar */}
+    <Sidebar
+      isOpen={isSidebarOpen}
+      toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+      onNavigate={handleNavigation} // Pass navigation handler to Sidebar
+    />
 
-      {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-auto">
-        <Header />
-        <div className="p-4"> {/* Add padding to main content */}
-          <Routes>
-            {/* Define Routes */}
-            <Route path="/" element={<CustomerPage />} />
-            {/* Add more routes as needed */}
-          </Routes>
-        </div>
+    {/* Main Content */}
+    <div className="flex flex-col flex-1 overflow-auto">
+      <Header />
+      <div className="p-4"> {/* Add padding to main content */}
+        <Routes>
+          {/* Define Routes */}
+          <Route path="/" element={<CustomerPage />} />
+          <Route path="/Vender" element={<VendorPage/>} />
+          <Route path="/customer" element={<CustomerPage />} />
+          {/* Add more routes as needed */}
+        </Routes>
       </div>
     </div>
+  </div>
   );
 };
 
