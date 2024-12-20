@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { IoPeopleCircleSharp } from "react-icons/io5";
-import { FaPeopleGroup } from "react-icons/fa6";
+import { FaFile, FaPeopleGroup } from "react-icons/fa6";
 
 import { useCallback } from "react";
 import {
@@ -33,6 +33,7 @@ import {
 
 import { FaFilter } from "react-icons/fa";
 import { Link, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import FileUpload from "./KunalVersion/FileUpload/FileUpload";
 
 const data = Array.from({ length: 50 }, (_, i) => ({
   id: `0000${i + 1}`,
@@ -609,6 +610,13 @@ const HomePage = () => {
           <FaAccusoft />
           <h5>React Flow</h5>
         </Link>
+        <Link
+          to="/fileupload"
+          className="text-blue-500 underline hover:text-blue-700 flex flex-row space-x-1 items-center"
+        >
+          <FaFile />
+          <h5>File Upload</h5>
+        </Link>
       </div>
     </div>
   );
@@ -1125,6 +1133,10 @@ const AppKunalVersion = () => {
           {/* Default route */}
           <Route path="customers/create" element={<AppCreateContact />} />
           <Route path="reactflow" element={<AppReactFlow />} />
+          <Route
+            path="fileupload"
+            element={<FileUpload itemId={`6765a22849b0f297a4c58593`} />}
+          />
           <Route path="*" element={<PageNotFound />} />
         </Route>
 
