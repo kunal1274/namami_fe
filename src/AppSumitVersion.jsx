@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Page from "./Customer/Page";
+import Page from "./Page/Dashbord";
 
 function AppSumitVersion() {
   return (
