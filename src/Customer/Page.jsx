@@ -152,7 +152,7 @@ const Page = () => {
     }
   };
   return (
-    <div className="bg-blue-400 p-8 min-h-screen">
+    <div className="bg-grey-400 p-8 min-h-screen">
       <div className="bg-slate-50 rounded-lg p-6">
         {loading && <p className="text-yellow-500">Loading...</p>} {/* Loading indicator */}
         {message && <p className="text-green-500">{message}</p>}
@@ -182,7 +182,7 @@ const Page = () => {
             handleAddCustomer={handleAddCustomer}
             handleCancel={handleCancel}
             handleToggleView={handleToggleView}
-            toggleView ={toggleView}
+        
           />
         )}
       </div>

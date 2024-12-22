@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Label from "../components/common/Common/Label/Label";
+import Checkbox_with_words from "../components/layout/Checkbox_with_words/Checkbox_with_words";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const baseUrl = "https://befr8n.vercel.app";
 const secondUrl = "/fms/api/v0";
 const thirdUrl = "/customer";
 const mergedUrl = `${baseUrl}${secondUrl}${thirdUrl}`;
 
-function CustomerForm({handleCancel}) {
+function CustomerForm({ handleCancel }) {
   const [customerList, setCustomerList] = useState([]);
-  const [newCustomer, setNewCustomer] = useState({
+  const [formData, setFormData] = useState({
     name: "",
     contactNum: "",
     currency: "",
@@ -20,8 +23,23 @@ function CustomerForm({handleCancel}) {
   });
   const [message, setMessage] = useState("");
 
+  // Generate a unique customer account number
+  const generateAccountNo = (customers) => {
+    const lastAccountNo = customers
+      .map((customer) => parseInt(customer.customerAccountNo.split("_")[1], 10))
+      .filter((num) => !isNaN(num))
+      .reduce((max, num) => Math.max(max, num), 0);
+
+    return `CUST_${String(lastAccountNo + 1).padStart(3, "0")}`;
+  };
+
   // Fetch Customers
   useEffect(() => {
+    toast.info("Customer form opened!",
+
+
+    );
+
     async function loadCustomers() {
       try {
         const response = await axios.get(mergedUrl, {
@@ -33,11 +51,7 @@ function CustomerForm({handleCancel}) {
         console.log("Customer data fetched:", response.data);
         setCustomerList(response.data.data);
       } catch (error) {
-        if (error.response) {
-          console.log(`Error in response: ${error.response.data}`);
-        } else {
-          console.error(`Error: ${error.message}`);
-        }
+        console.error("Error fetching customers:", error);
       }
     }
 
@@ -45,75 +59,74 @@ function CustomerForm({handleCancel}) {
   }, []);
 
   // Handle Input Change
-  
- // Handle Input Change
-const handleInputChange = (e) => {
-  const { name, value } = e.target;
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
 
-  if (name === "contactNum") {
-    // Allow only numeric input and limit to 10 characters
-    if (/^\d*$/.test(value) && value.length <= 10) {
-      setNewCustomer((prev) => ({ ...prev, [name]: value }));
-    }
-  } else if (name === "registrationNum") {
-    // Convert to uppercase and ensure it is 16 characters long
-    const uppercaseValue = value.toUpperCase();
-    if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 16) {
-      setNewCustomer((prev) => ({ ...prev, [name]: uppercaseValue }));
-    }
-  } else if (name === "panNum") {
-    // Validate PAN format (uppercase and alphanumeric, up to 10 characters)
-    const uppercaseValue = value.toUpperCase();
-    if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 10) {
-      setNewCustomer((prev) => ({ ...prev, [name]: uppercaseValue }));
-    }
-  } else {
-    setNewCustomer((prev) => ({ ...prev, [name]: value }));
-  }
-};
+    setFormData((prev) => {
+      if (name === "contactNum") {
+        // Allow only digits and up to 10 characters
+        if (/^\d*$/.test(value) && value.length <= 10) {
+          return { ...prev, [name]: value };
+        }
+      } else if (name === "registrationNum") {
+        // Allow only uppercase alphanumeric characters and up to 16 characters
+        const uppercaseValue = value.toUpperCase();
+        if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 16) {
+          return { ...prev, [name]: uppercaseValue };
+        }
+      } else if (name === "panNum") {
+        // Allow only uppercase alphanumeric characters and exactly 10 characters
+        const uppercaseValue = value.toUpperCase();
+        if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 10) {
+          return { ...prev, [name]: uppercaseValue };
+        }
+      } else {
+        // Handle other fields normally
+        return { ...prev, [name]: value };
+      }
+      return prev; // Return previous state if no valid change
+    });
+  };
+
 
   // Create New Customer
   const createCustomer = async (e) => {
-   
     e.preventDefault();
     try {
       const response = await axios.post(
         mergedUrl,
-        { ...newCustomer },
+        { ...formData },
         {
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
-      console.log("Customer created:", response.data);
-      setMessage("Customer created successfully!");
+
+      toast.success("Customer created successfully!",);
+      console.log("Customer created successfully");
       handleCancel();
+      toast.success("Customer created successfully!",);
       setCustomerList((prev) => [...prev, response.data.data]);
-      setNewCustomer({
+      setFormData({
         name: "",
         contactNum: "",
         currency: "",
         registrationNum: "",
         panNum: "",
         address: "",
-        active: "",
+        active: true,
       });
-    } catch (error) {
-      if (error.response) {
-        console.error(`Error in response: ${error.response.data}`);
-        setMessage(error.response.data.message || "Error creating customer");
-      } else if (error.request) {
-        console.error(`Error in request: ${error.request}`);
-        setMessage("Network error, please try again.");
-      } else {
-        console.error(`Error: ${error.message}`);
-        setMessage("An unexpected error occurred.");
-      }
+    }
+    catch (error) {
+
+      toast.error("Customer save error! Please try again.");
     }
   };
+
+  // Reset the form
   const handleReset = () => {
-    setNewCustomer({
+    setFormData({
       name: "",
       contactNum: "",
       currency: "",
@@ -123,146 +136,187 @@ const handleInputChange = (e) => {
       active: true,
     });
     setMessage("");
+    const accountNo = generateAccountNo(customerList);
+    setFormData((prev) => ({ ...prev, customerAccountNo: accountNo }));
   };
-  
+
   return (
     <>
-    <div className="bg-blue-400 mt-44 p-8 min-h-screen">
-      <div className="bg-slate-50 rounded-lg p-6">
-        <header className="text-center bg-white py-2 border border-blue-300 rounded-full mb-5">
-          <h2 className="text-lg font-bold text-blue-500">Customer Creation Form </h2>
-        </header>
-        {message && <div className="text-green-500">{message}</div>}
-      <form
-        onSubmit={createCustomer}
-        className="mt-10 space-y-6">
-      
-      <div className="grid grid-cols-3 gap-4">
-      <div>
-              <label className="font-semibold text-blue-600">Customer Account No</label>
-              <input
-                type="text"
-                name="customerAccountNo"
-                   placeholder="Customer account no"
-                value={newCustomer.code}
-                onChange={handleInputChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-               
+      <ToastContainer />
+      <h1 className="text-2xl font-bold mb-4 text-center">Add New Customer</h1>
+
+      <form onSubmit={createCustomer}>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+          <div className="bg-white shadow-lg rounded-lg w-full max-w-2xl p-8">
+            {/* Upload Photo */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-gray-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 11c1.656 0 3-1.344 3-3s-1.344-3-3-3-3 1.344-3 3 1.344 3 3 3zm0 2c-2.761 0-5 2.239-5 5v3h10v-3c0-2.761-2.239-5-5-5z"
+                  />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="text-blue-600 mt-2 text-sm hover:underline"
+              >
+                Upload Photo
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* cUSTOMERACC */}
+
+              {/* Name */}
+              <div>
+                <label htmlFor="name" className="block text-gray-600 mb-2">
+                  Name<span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="  Customer Name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                  required
+                />
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label htmlFor="contactNum" className="block text-gray-600 mb-2">
+                  Phone Number<span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="contactNum"
+                  name="contactNum"
+                  type="tel"
+                  placeholder="Contact No"
+                  value={formData.contactNum}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                  required
+                />
+              </div>
+
+              {/* Currency */}
+              <div>
+                <label htmlFor="currency" className="block text-gray-600 mb-2">
+                  Currency
+                </label>
+                <select
+                  id="currency"
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 bg-white focus:outline-none focus:ring focus:ring-blue-300"
+                >
+                  <option value="">Select Currency</option>
+                  <option value="INR">INR</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </div>
+
+              {/* PAN Number */}
+              <div>
+                <label htmlFor="panNum" className="block text-gray-600 mb-2">
+                  PAN Number
+                </label>
+                <input
+                  id="panNum"
+                  name="panNum"
+                  type="text"
+                  placeholder="Customer PAN "
+                  value={formData.panNum}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                />
+              </div>
+
+              {/* Registration Number */}
+              <div>
+                <label htmlFor="registrationNum" className="block text-gray-600 mb-2">
+                  Registration Number
+                </label>
+                <input
+                  id="registrationNum"
+                  name="registrationNum"
+                  type="text"
+                  placeholder=" Registration No "
+                  value={formData.registrationNum}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                />
+              </div>
+
+              {/* Billing Address */}
+              <div className="md:col-span-2">
+                <label htmlFor="address" className="block text-gray-600 mb-2">
+                  Address
+                </label>
+                <textarea
+                  id="address"
+                  name="address"
+                  placeholder=" Customer Address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  rows="4"
+                  className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring focus:ring-blue-300"
+                ></textarea>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <Label label="Active" className="font-semibold text-blue-600" />
+              <Checkbox_with_words
+                name="active"
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                checked={formData.active}
+                onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
               />
             </div>
-         <div>
-         <Label label="Customer Name" className="font-semibold text-blue-600" />
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={newCustomer.name}
-          onChange={handleInputChange}
-            className="border border-green-600 w-full p-2 rounded-lg"
-          required
-        />
+            {/* Submit and Reset Buttons */}
+            <div className="mt-6 flex justify-between">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                Reset
+              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-700"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-          <div>
-          <Label label="Contact No." className="font-semibold text-blue-600" />
-        <input
-          type="tel"
-          name="contactNum"
-          placeholder="Contact Number"
-          value={newCustomer.contactNum}
-          onChange={handleInputChange}
-           className="border border-green-600 w-full p-2 rounded-lg"
-          required
-          pattern="[0-9]{10}"
-          title="Enter a valid 10-digit phone number"
-        />
-            </div>  
-             
-            <div>
-         <Label label="Currency" className="font-semibold text-blue-600" />
-        <input
-          type="text"
-          name="currency"
-          placeholder="Currency"
-          value={newCustomer.currency}
-          onChange={handleInputChange}
-         className="border border-green-600 w-full p-2 rounded-lg"
-          required
-        />
-            </div>
-        
-            <div>
-         <Label label="Registration No" className="font-semibold text-blue-600" />
-        <input
-          type="text"
-          name="registrationNum"
-          placeholder="Registration Number"
-          value={newCustomer.registrationNum}
-          onChange={handleInputChange}
-         className="border border-green-600 w-full p-2 rounded-lg"
-          required
-        />
-            </div>
-            <div>
-          <Label label="PAN No." className="font-semibold text-blue-600" />
-        <input
-          type="text"
-          name="panNum"
-          placeholder="PAN Number"
-          value={newCustomer.panNum}
-          onChange={handleInputChange}
-            className="border border-green-600 w-full p-2 rounded-lg"
-          required
-        />
-            </div>    
-            <div>
-        <Label label="Customer Address" className="font-semibold text-blue-600" />
-        <textarea
-          name="address"
-          placeholder="Address"
-          value={newCustomer.address}
-          onChange={handleInputChange}
-            rows="4"
-          className="border border-green-600 w-full p-2 rounded-lg"
-        />
-            </div>
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            name="active"
-            checked={newCustomer.active}
-            onChange={(e) =>
-              setNewCustomer((prev) => ({
-                ...prev,
-                active: e.target.checked,
-              }))
-            }
-          />
-          <span>Active</span>
-        </label>
         </div>
-        <div className="text-center">
-        <button
-          type="submit"
-          className="bg-blue-500 text-white py-2 px-4 rounded-full mt-4">
-          Save
-        </button>
-        <button
-              type="button"
-              onClick={handleReset}
-              className="bg-red-500 text-white py-2 px-4 rounded-full mt-4 ml-4"
-            >
-              Reset
-            </button>
-            <button type="button" className="ml-3 bg-zinc-700 text-white py-2 px-4 rounded-full mt-4"
-            onClick={handleCancel}>
-              Cancel
-            </button>
-            </div>
       </form>
-      </div>
-      </div>
-
-   
     </>
   );
 }
