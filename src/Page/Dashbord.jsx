@@ -35,6 +35,7 @@ const Dashboard = () => {
         onNavigate={handleNavigation} // Pass navigation handler to Sidebar
       />
 
+<<<<<<< Updated upstream
       {/* Main Content */}
       <div className="flex flex-col flex-1 overflow-auto">
         <Header />
@@ -60,6 +61,19 @@ const Dashboard = () => {
             {/* Add more routes as needed */}
           </Routes>
         </div>
+=======
+    {/* Main Content */}
+    <div className="flex flex-col flex-1 overflow-auto">
+      <Header />
+      <div className="p-4"> {/* Add padding to main content */}
+        <Routes>
+          {/* Define Routes */}
+          <Route path="/" element={<CustomerPage />} />
+        
+          <Route path="/customer" element={<CustomerPage />} />
+          {/* Add more routes as needed */}
+        </Routes>
+>>>>>>> Stashed changes
       </div>
     </div>
   );

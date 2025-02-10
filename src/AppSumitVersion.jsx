@@ -5,7 +5,7 @@ import Page from "./Page/Dashbord";
 
 function AppSumitVersion() {
   return (
-    <div className="flex justify-center container_app">
+    <div className="">
       <Routes>
         <Route path="/" element={<Page />} />
         {/*  */}
