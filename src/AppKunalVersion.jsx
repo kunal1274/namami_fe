@@ -1329,7 +1329,7 @@ const PageNotFound = () => {
           onClick={() => navigate("/")}
           className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg shadow-md transition duration-300"
         >
-          Back to Dashboard
+          Back to the Dashboard
         </button>
       </div>
     </div>
