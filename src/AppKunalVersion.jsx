@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { IoPeopleCircleSharp } from "react-icons/io5";
-import { FaPeopleGroup } from "react-icons/fa6";
+import { FaFile, FaPeopleGroup } from "react-icons/fa6";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import { useCallback } from "react";
+import {
+  ReactFlow,
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+} from "@xyflow/react";
+
+import "@xyflow/react/dist/style.css";
 
 const baseUrl = "https://befr8n.vercel.app/fms/api/v0/customer";
+// const baseUrl = "http://localhost:5050/fms/api/v0/customer";
 
 import {
   FaBars,
@@ -15,10 +31,68 @@ import {
   FaSignOutAlt,
   FaList,
   FaGrin,
+  FaAccusoft,
 } from "react-icons/fa";
 
 import { FaFilter } from "react-icons/fa";
 import { Link, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import FileUpload from "./KunalVersion/FileUpload/FileUpload";
+import AppCreateCustomer from "./KunalVersion/CustomerMaster/AppCreateCustomer";
+import ClientFeatures from "./KunalVersion/ClientFeatures/ClientFeatures";
+import OneTimeOrder from "./KunalVersion/SalesOrders/OneTimeOrder";
+import OneTimeOneItemOrder from "./KunalVersion/SalesOrders/OneTimeOneItemSalesOrders";
+import OneTimeCustomerOrder from "./KunalVersion/SalesOrders/OneTimeCustomerOrder";
+import SalesOrder from "./KunalVersion/Sales/pages/SalesOrder";
+// import MultiStepForm from "./KunalVersion/Bookings/Bookings";
+// import TimelineTracker from "./KunalVersion/Bookings/Bookings";
+import RideManagement from "./KunalVersion/Bookings/Bookings";
+// import AppToDo from "./KunalVersion/ToDo/_App";
+import AppToDoDnD from "./KunalVersion/ToDo/ToDo";
+import AppOto from "./KunalVersion/oto/MainApp";
+import RideProgressTimeline from "./KunalVersion/Timeline/RideProgressTimeline";
+import RidePayments from "./KunalVersion/Payments/RidePayments";
+import DriverService from "./KunalVersion/DriverService/DriverService";
+import { GlobalProvider } from "./KunalVersion/DriverService/context/GlobalContext";
+import Booking from "./KunalVersion/DriverService/pages/Booking";
+import AllocatorDashboard from "./KunalVersion/DriverService/pages/AllocatorDashboard";
+import DriverDashboard from "./KunalVersion/DriverService/pages/DriverDashboard";
+import Payment from "./KunalVersion/DriverService/pages/Payment";
+import PaymentSuccess from "./KunalVersion/DriverService/pages/PaymentSuccess";
+import RideBookingLanding from "./KunalVersion/RideBookingDesign/RideBookingLanding";
+import TimeCalculation from "./KunalVersion/RideBookingDesign/TimeCalculation";
+import RideBookingLandingDup from "./KunalVersion/RideBookingDesign/RideBookingLandingDup";
+import MenuApp from "./KunalVersion/Menu/MenuApp";
+import BookingHistory from "./KunalVersion/RideBookingDesign/BookingHistory";
+import ArrivingDetailsPage from "./KunalVersion/RideBookingDesign/ArrivingDetailsPage";
+import ArrivedPage from "./KunalVersion/RideBookingDesign/ArrivedPage";
+import OnTripPage from "./KunalVersion/RideBookingDesign/OnTrip";
+import RatePage from "./KunalVersion/RideBookingDesign/RatePage";
+import TipsPage from "./KunalVersion/RideBookingDesign/TipsPage";
+import { TripEndedPage } from "./KunalVersion/RideBookingDesign/TripEndedPage";
+import { NotificationToast } from "./KunalVersion/RideBookingDesign/NotificationToast";
+import { TutorialOverlay } from "./KunalVersion/RideBookingDesign/TutorialOverlay";
+import RideProgressTimeline1 from "./KunalVersion/Timeline/RideProgressTimeline1";
+import AppResume from "./KunalVersion/Resume/Resume";
+import Resume from "./KunalVersion/Resume/Resume";
+import SampleResume from "./KunalVersion/Resume/SampleResume";
+import ResumeDocx from "./KunalVersion/Resume/ResumeDocx";
+import CardPage from "./KunalVersion/RideBookingDesign/CardPage";
+import Promo from "./KunalVersion/RideBookingDesign/Promo";
+import Support from "./KunalVersion/RideBookingDesign/Support";
+import AuthFlow from "./KunalVersion/Auth/AuthFlow";
+import { ProfilePage } from "./KunalVersion/Profile/ProfilePage";
+import ProfileScreen from "./KunalVersion/Profile/ProfileScreen";
+import NetflixResume from "./KunalVersion/Resume/Netflix";
+import AmazonResume from "./KunalVersion/Resume/AmazonResume";
+import GenpactResume from "./KunalVersion/Resume/GenpactResume";
+import KunalGenpactResume from "./KunalVersion/Resume/KunalGenpactResume";
+import KunalGenpactResumeDocx from "./KunalVersion/Resume/KGP";
+import KunalWhatsappResume from "./KunalVersion/Resume/KunalWhatsappResume";
+import {
+  KunalFlagResume,
+  KunalIndianResume,
+  KunalSanskritResume,
+} from "./KunalVersion/Resume/KunalIndianResume";
 
 const data = Array.from({ length: 50 }, (_, i) => ({
   id: `0000${i + 1}`,
@@ -41,6 +115,28 @@ const statusColors = {
   "In Transit": "text-purple-500 bg-purple-100",
   Pending: "text-orange-500 bg-orange-100",
 };
+
+const initialNodes = [
+  {
+    id: "1",
+    type: "input",
+    data: { label: "Start" },
+    position: { x: 250, y: 0 },
+  },
+  { id: "2", data: { label: "Middle" }, position: { x: 250, y: 150 } },
+  {
+    id: "3",
+    type: "output",
+    data: { label: "End" },
+    position: { x: 250, y: 300 },
+  },
+];
+
+const initialEdges = [
+  { id: "e1-2", source: "1", target: "2", animated: true },
+  { id: "e2-3", source: "2", target: "3" },
+  { id: "e1-3", source: "1", target: "3" },
+];
 
 const Table = ({
   tableData,
@@ -566,6 +662,27 @@ const HomePage = () => {
           <FaPeopleGroup />
           <h5>Vendors</h5>
         </Link>
+        <Link
+          to="/app"
+          className="text-blue-500 underline hover:text-blue-700 flex flex-row space-x-1 items-center"
+        >
+          <FaList />
+          <h5>App Features</h5>
+        </Link>
+        <Link
+          to="/reactflow"
+          className="text-blue-500 underline hover:text-blue-700 flex flex-row space-x-1 items-center"
+        >
+          <FaAccusoft />
+          <h5>React Flow</h5>
+        </Link>
+        <Link
+          to="/fileupload"
+          className="text-blue-500 underline hover:text-blue-700 flex flex-row space-x-1 items-center"
+        >
+          <FaFile />
+          <h5>File Upload</h5>
+        </Link>
       </div>
     </div>
   );
@@ -742,7 +859,8 @@ const TeamMainContent = () => {
   );
 };
 
-const AppCreateContact = () => {
+// Moved to folder : KunalVersion/CustomerMaster
+const AppCreateCustomerV1 = () => {
   const [formData, setFormData] = useState({
     name: "",
     contactNum: "",
@@ -1074,13 +1192,105 @@ const AppEditProfile = () => {
 const AppKunalVersion = () => {
   return (
     <>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <Routes>
         <Route path="/" element={<Dashboard />}>
           <Route index element={<HomePage />} />
           {/* Nested Routes inside Dashboard */}
           <Route path="customers" element={<CustomerListTable />} />{" "}
           {/* Default route */}
-          <Route path="customers/create" element={<AppCreateContact />} />
+          <Route path="customers/create" element={<AppCreateCustomer />} />
+          {/**App Management */}
+          <Route path="client-features" element={<ClientFeatures />} />
+          {/**later can be used with to do and full control on ERP feature list when combined with to do  */}
+          <Route path="sales-orders" element={<SalesOrder />} />{" "}
+          {/** ERP Sales order screen. More Work required */}
+          <Route path="todo" element={<AppToDoDnD />} />{" "}
+          {/** Deep and Very Good Hierarchical Tree TO do  */}
+          <Route path="payments" element={<RidePayments />} />{" "}
+          {/** Payment Gateway page . more work later */}
+          <Route path="timeline" element={<RideProgressTimeline1 />} />{" "}
+          {/** Ride Transit Tracking More Work later */}
+          <Route path="appoto" element={<AppOto />} />{" "}
+          {/** Driver allocation board . More Work required */}
+          <Route path="kunal-flag" element={<KunalFlagResume />} />
+          <Route path="kunal-sanskrit" element={<KunalSanskritResume />} />
+          <Route path="kunal-hindi" element={<KunalIndianResume />} />
+          <Route path="kunalwa" element={<KunalWhatsappResume />} />
+          <Route path="kunalgp" element={<KunalGenpactResume />} />
+          <Route path="amazon" element={<AmazonResume />} />
+          <Route path="genpact" element={<GenpactResume />} />
+          <Route path="netflix" element={<NetflixResume />} />
+          <Route path="resumedocx" element={<ResumeDocx />} />
+          <Route path="resume" element={<Resume />} />
+          <Route path="sample-resume" element={<SampleResume />} />
+          {/** The below is under testing only */}
+          <Route path="profile" element={<ProfileScreen />} />
+          <Route path="auth-flow" element={<AuthFlow />} />
+          <Route path="support" element={<Support />} />
+          <Route path="promo" element={<Promo />} />
+          {/**OKAY */}
+          <Route path="card" element={<CardPage />} />
+          {/**OKAY */}
+          <Route path="tripend" element={<TripEndedPage />} /> {/**OKAY */}
+          <Route path="notification" element={<NotificationToast />} />{" "}
+          {/**NOT OKAY */}
+          <Route path="tutorial" element={<TutorialOverlay />} />{" "}
+          {/** MORE required */}
+          <Route path="rate" element={<RatePage />} /> {/**OKAY */}
+          <Route path="tips" element={<TipsPage />} /> {/**OKAY */}
+          <Route path="ontrip" element={<OnTripPage />} /> {/**OKAY */}
+          <Route path="arrived" element={<ArrivedPage />} /> {/**OKAY */}
+          <Route path="arriving" element={<ArrivingDetailsPage />} />{" "}
+          {/**MORE Required */}
+          <Route path="bookinghistory" element={<BookingHistory />} />{" "}
+          {/**OKAY */}
+          <Route path="bookride" element={<TimeCalculation />} />{" "}
+          {/** Simple Book Ride */}
+          <Route path="menu" element={<MenuApp />} />{" "}
+          {/** NOT REQUIRED but menu1 and menu2 are required in Arrival page etc. */}
+          <Route path="ridelanding" element={<RideBookingLanding />} />{" "}
+          {/** GOING GOOD */}
+          <Route
+            path="ridelandingdup"
+            element={<RideBookingLandingDup />}
+          />{" "}
+          {/**Another OKAY as an alternate */}
+          <Route path="bookings" element={<RideManagement />} />{" "}
+          {/**GOOD for event log, status changes and its activity */}
+          <Route path="reactflow" element={<AppReactFlow />} />{" "}
+          {/**LATER RESEARCH */}
+          <Route
+            path="fileupload"
+            element={<FileUpload itemId={`6765a22849b0f297a4c58593`} />}
+          />{" "}
+          {/**MORE WORK Required */}
+          {/* <Route
+            path="driverservice"
+            element={
+              <GlobalProvider>
+                <DriverService />
+              </GlobalProvider>
+            }
+          >
+            <Route index element={<Booking />} />
+            <Route path="allocator" element={<AllocatorDashboard />} />
+            <Route path="driver" element={<DriverDashboard />} />
+            <Route path="payment" element={<Payment />} />
+            <Route path="payment-success" element={<PaymentSuccess />} />
+          </Route> */}{" "}
+          {/** this is for demo on how nested and deep nested thing works  */}
+          {/* <Route path="todoremoved" element={<AppToDo />} /> */}
           <Route path="*" element={<PageNotFound />} />
         </Route>
 
@@ -1119,11 +1329,66 @@ const PageNotFound = () => {
           onClick={() => navigate("/")}
           className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg shadow-md transition duration-300"
         >
-          Back to Dashboard
+          Back to the Dashboard
         </button>
       </div>
     </div>
   );
 };
+
+function AppReactFlow() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
+  return (
+    <div style={{ width: "100vw", height: "100vh" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+        panOnScroll
+        zoomOnScroll
+      >
+        <Controls />
+        <MiniMap />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
+    </div>
+  );
+}
+
+function AppReactFlowV1() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
+  return (
+    <div style={{ width: "60vw", height: "50vh" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+      >
+        <Controls />
+        <MiniMap />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
+    </div>
+  );
+}
 
 export default AppKunalVersion;
