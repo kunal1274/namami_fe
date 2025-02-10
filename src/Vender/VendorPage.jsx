@@ -1,98 +1,93 @@
 import React, { useState } from "react";
-import CustomerForm from "./VendorForm";
-import CustomerList from "./VendorList";
-import CustomerViewPage from "./VendorViewPage"; // Import the detail page
-
+import VendorForm from "../Vender/VendorForm";
+import VendorList from "../Vender/VendorList";
+import VendorViewPage from "../Vender/VendorViewPage"; // Import the detail page
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const VendorPage = () => {
-  const [view, setView] = useState("list"); // Default to show CustomerList
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null); // Store the selected customer
+  const [view, setView] = useState("list"); // Default to show VendorList
+  const [vendors, setVendors] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState(null); // Store the selected Vendor
 
-  // Handles saving customer data (both adding new or updating existing)
-  const handleSaveCustomer = (customer) => {
-    setCustomers((prevCustomers) => {
+  // Utility function to find a vendor by account number
+  const findVendorByAccountNo = (accountNo) => {
+    return vendors.find((vendor) => vendor.vendorAccountNo === accountNo);
+  };
 
-      const existingCustomerIndex = prevCustomers.findIndex(
-        (cust) => cust.customerAccountNo === customer.customerAccountNo
+  // Handles saving Vendor data (both adding new or updating existing)
+  const handleSaveVendor = (vendor) => {
+    setVendors((prevVendors) => {
+      const existingVendorIndex = prevVendors.findIndex(
+        (existingVendor) =>
+          existingVendor.vendorAccountNo === vendor.vendorAccountNo
       );
 
-
-
-      if (existingCustomerIndex !== -1) {
-        // Update existing customer
-        const updatedCustomers = [...prevCustomers];
-        updatedCustomers[existingCustomerIndex] = customer;
+      if (existingVendorIndex !== -1) {
+        // Update existing Vendor
+        const updatedVendors = [...prevVendors];
+        updatedVendors[existingVendorIndex] = vendor;
         setView("details");
-        return updatedCustomers;
+        return updatedVendors;
       } else {
-        // Add new customer
-        return [...prevCustomers, customer];
+        // Add new Vendor
+        return [...prevVendors, vendor];
       }
     });
 
-
-    setView("list"); 
-
+    setView("list");
   };
 
-
-  // Shows the CustomerForm when the "Add" button is clicked
-  const handleAddCustomer = () => {
-    setSelectedCustomer(null); // Reset selected customer for new entry
-    setView("form");
-  };
-
-
-  // Handles view toggle to customer details
-  const handleViewCustomer = (customerAccountNo) => {
-    const customer = customers.find(
-      (cust) => cust.customerAccountNo === customerAccountNo
-    );
-
-    setSelectedCustomer(customer); // Set the selected customer
+  // Handles view toggle to vendor details
+  const handleViewVendor = (vendorAccountNo) => {
+    const vendor = findVendorByAccountNo(vendorAccountNo);
+    setSelectedVendor(vendor); // Set the selected vendor
     setView("details"); // Switch to the detail view
-    
   };
 
-
-
-  // Handles customer deletion
-  const handleDeleteCustomer = (selectedCustomers) => {
-    setCustomers((prevCustomers) =>
-      prevCustomers.filter(
-        (customer) => !selectedCustomers.includes(customer.customerAccountNo)
+  // Handles vendor deletion
+  const handleDeleteVendor = (selectedVendors) => {
+    setVendors((prevVendors) =>
+      prevVendors.filter(
+        (vendor) => !selectedVendors.includes(vendor.vendorAccountNo)
       )
     );
   };
 
-  // Handles cancel operation to return to customer list
+  // Handles cancel operation to return to Vendor list
   const handleCancel = () => {
     setView("list");
   };
 
+  // Handles the addition of a new vendor
+  const handleAddVendor = () => {
+    setSelectedVendor(null);
+    setView("form");
+  };
+
   return (
-    <div className="bg-blue-400 p-8 min-h-screen">
+    <div className="bg-grey-400  min-h-screen">
+      <ToastContainer />
       <div className="bg-slate-50 rounded-lg p-6">
         {view === "form" && (
-          <CustomerForm
-            handleSaveCustomer={handleSaveCustomer}
+          <VendorForm
+            handleSaveVendor={handleSaveVendor}
             handleCancel={handleCancel} // Pass the cancel handler
           />
         )}
 
         {view === "list" && (
-          <CustomerList
-            customers={customers}
-            handleAddCustomer={handleAddCustomer}
-            handleViewCustomer={handleViewCustomer} // Pass the view handler
-            handleDeleteCustomer={handleDeleteCustomer}
+          <VendorList
+            vendors={vendors}
+            handleAddVendor={handleAddVendor}
+            handleViewVendor={handleViewVendor} // Pass the view handler
+            handleDeleteVendor={handleDeleteVendor}
           />
         )}
 
-        {view === "details" && selectedCustomer && (
-          <CustomerViewPage
-            customer={selectedCustomer}
-            handleSaveCustomer={handleSaveCustomer} // Pass the save handler
+        {view === "details" && selectedVendor && (
+          <VendorViewPage
+            vendor={selectedVendor}
+            handleSaveVendor={handleSaveVendor} // Pass the save handler
             toggleView={() => setView("list")} // Pass a function to toggle back to the list
           />
         )}

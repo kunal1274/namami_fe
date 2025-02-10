@@ -1,229 +1,342 @@
-import React, { useState } from "react";
-import Label from "../zoho/Azoho/Common/Label/Label";
-import TextInput from "../zoho/Azoho/Common/Input/Input";
-import Checkbox_with_words from "../components/layout/Checkbox_with_words/Checkbox_with_words";
+import React, { useEffect, useState } from "react";
+// import Label from "../../components/common/Common/Label/Label";
+// import TextInput from "../../zoho/Azoho/Common/Input/Input";
+// import Checkbox_with_words from "../../components/layout/Checkbox_with_words/Checkbox_with_words";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
-const VendorForm = ({ handleSaveCustomer, handleCancel }) => {
+
+
+const baseUrl = "https://befr8n.vercel.app";  
+const secondUrl = "/fms/api/v0";
+const thirdUrl = "/vendors";
+const mergedUrl = `${baseUrl}${secondUrl}${thirdUrl}`;
+
+
+const VendorForm = ({ handleCancel }) => {
+  const [vendorList, setVendorList] = useState([]);
   const [formData, setFormData] = useState({
-    vendorAccountNo: "",
+   
     name: "",
-    Address: "",
+    contactNum: "",
     currency: "",
-    registrationNo: "",
-    pan: "",
-    contactNo: "", // Only 10 digits allowed
+    registrationNum: "",
+    panNum: "",
+    address: "", // Only 10 digits allowed
     active: false,
   });
 
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const generateAccountNo = (vendors) => {
+    const lastAccountNo = vendors
+      .map((vendor) => parseInt(vendor.vendorAccountNo.split("_")[1], 10))
+      .filter((num) => !isNaN(num))
+      .reduce((max, num) => Math.max(max, num), 0);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    if (type === "checkbox") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
-    } else if (name === "pan") {
-      const uppercaseValue = value.toUpperCase();
-      if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 10) {
-        setFormData((prev) => ({ ...prev, [name]: uppercaseValue }));
-      }
-    } else if (name === "registrationNo") {
-      const uppercaseValue = value.toUpperCase();
-      if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 16) {
-        setFormData((prev) => ({ ...prev, [name]: uppercaseValue }));
-      }
-    } else if (name === "contactNo") {
-      const numericValue = value.replace(/\D/g, ""); // Remove all non-numeric characters
-      if (numericValue.length <= 10) {
-        setFormData((prev) => ({ ...prev, [name]: numericValue }));
-      }
-    } else if (name === "currency") {
-      const uppercaseValue = value.toUpperCase(); // Convert to uppercase
-      setFormData((prev) => ({ ...prev, [name]: uppercaseValue }));
-    } else if (name === "name") {
-      const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1); // Capitalize first letter
-      setFormData((prev) => ({ ...prev, [name]: capitalizedValue }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    return `CUST_${String(lastAccountNo + 1).padStart(3, "0")}`;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
 
-    // Validate that PAN is exactly 10 characters
-    if (formData.pan.length !== 10) {
-      setError("PAN must be exactly 10 characters long.");
-      return;
-    }
-
-    // Validate that required fields are not empty
+    // Fetch vendors
+    useEffect(() => {
+      toast.info("vendor form opened!",
   
+  
+      );
+  
+      async function loadVendors() {
+        try {
+          const response = await axios.get(mergedUrl, {
+            headers: {
+              // Authorization: `Bearer ${tokenCookie}`, // Uncomment if token is required
+            },
+            withCredentials: false,
+          });
+          console.log("Vendor data fetched:", response.data);
+          setVendorList(response.data.data);
+        } catch (error) {
+          console.error("Error fetching Vendors:", error);
+        }
+      }
+  
+      loadVendors();
+    }, []);
 
-    // Validate that Contact No. is exactly 10 digits
-    if (formData.contactNo.length !== 10) {
-      setError("Contact No. must be exactly 10 digits.");
-      return;
-    }
 
-    console.log("Form submitted:", formData);
-    handleSaveCustomer(formData);
-    alert("Vendor saved");
 
-    // Clear the form and error after submission
-    setError("");
-    setFormData({
-      vendorAccountNo: "",
-      name: "",
-      vendorAddress: "",
-      currency: "",
-      registrationNo: "",
-      pan: "",
-      contactNo: "",
-      active: false,
-    });
-  };
+    const handleInputChange = (e) => {
+      const { name, value } = e.target;
+  
+      setFormData((prev) => {
+        if (name === "contactNum") {
+          // Allow only digits and up to 10 characters
+          if (/^\d*$/.test(value) && value.length <= 10) {
+            return { ...prev, [name]: value };
+          }
+        } else if (name === "registrationNum") {
+          // Allow only uppercase alphanumeric characters and up to 16 characters
+          const uppercaseValue = value.toUpperCase();
+          if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 16) {
+            return { ...prev, [name]: uppercaseValue };
+          }
+        } else if (name === "panNum") {
+          // Allow only uppercase alphanumeric characters and exactly 10 characters
+          const uppercaseValue = value.toUpperCase();
+          if (/^[A-Z0-9]*$/.test(uppercaseValue) && uppercaseValue.length <= 10) {
+            return { ...prev, [name]: uppercaseValue };
+          }
+        } else {
+          // Handle other fields normally
+          return { ...prev, [name]: value };
+        }
+        return prev; // Return previous state if no valid change
+      });
+    };
 
+
+    const createVendor = async (e) => {
+      e.preventDefault();
+      try {
+        const response = await axios.post(
+          mergedUrl,
+          { ...formData },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        toast.success("Vendor created successfully!", {
+          position: "top-right", // Adjust position if necessary
+          autoClose: 1000,
+        });
+        console.log("Vendor created successfully");
+        setTimeout(() => {
+        handleCancel();
+      }, 3000);
+       
+        setVendorList((prev) => [...prev, response.data.data]);
+        setFormData({
+       
+    name: "",
+    contactNum: "",
+    currency: "",
+    registrationNum: "",
+    panNum: "",
+    address: "", // Only 10 digits allowed
+    active: false,
+        });
+      }
+      catch (error) {
+        toast.error("Vendor save error! Please try again.", {
+          position: "top-right", // Adjust position if necessary
+          autoClose: 1000,
+        });
+     
+       
+      }
+    };
+
+  
+    
+
+    const handleReset = () => {
+      setFormData({
+      
+    name: "",
+    contactNum: "",
+    currency: "",
+    registrationNum: "",
+    panNum: "",
+    address: "", // Only 10 digits allowed
+    active: false,
+      });
+      setMessage("");
+      const accountNo = generateAccountNo(vendorList);
+      setFormData((prev) => ({ ...prev, vendorAccountNo: accountNo }));
+    };
+ 
   return (
-    <div className="bg-blue-400 mt-44 p-8 min-h-screen">
-      <div className="bg-slate-50 rounded-lg p-6">
-        <header className="text-center bg-white py-2 border border-blue-300 rounded-full mb-5">
-          <h2 className="text-lg font-bold text-blue-500">Vendor Creation Form</h2>
-        </header>
+    <>
+    <ToastContainer />
+    <h1 className="text-2xl font-bold mb-4 text-center">Add New vendor</h1>
 
-        {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label label="Vendor Account No." className="font-semibold text-blue-600" />
-              <TextInput
-                name="vendorAccountNo"
-                placeholder="Vendor Account No."
-                value={formData.vendorAccountNo}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
+    <form onSubmit={createVendor}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white shadow-lg rounded-lg w-full max-w-2xl p-8">
+          {/* Upload Photo */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 11c1.656 0 3-1.344 3-3s-1.344-3-3-3-3 1.344-3 3 1.344 3 3 3zm0 2c-2.761 0-5 2.239-5 5v3h10v-3c0-2.761-2.239-5-5-5z"
+                />
+              </svg>
             </div>
-
-            <div>
-              <Label label="Vendor Name" className="font-semibold text-blue-600" />
-              <TextInput
-                name="name"
-                placeholder=" Vendor Name"
-                value={formData.name}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="Contact No." className="font-semibold text-blue-600" />
-              <TextInput
-                name="contactNo"
-                placeholder="Enter Contact No. (10 digits)"
-                value={formData.contactNo}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="Currency" className="font-semibold text-blue-600" />
-              <TextInput
-                name="currency"
-                placeholder="Enter Currency"
-                value={formData.currency}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="Registration No" className="font-semibold text-blue-600" />
-              <TextInput
-                name="registrationNo"
-                placeholder="Enter Registration No."
-                value={formData.registrationNo}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="PAN No." className="font-semibold text-blue-600" />
-              <TextInput
-                name="pan"
-                placeholder="Enter PAN No."
-                value={formData.pan}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="Vendor Address" className="font-semibold text-blue-600" />
-              <textarea
-                name="Address"
-                placeholder="Address"
-                value={formData.Address}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                rows="4"
-                required
-              />
-            </div>
+            <button
+              type="button"
+              className="text-blue-600 mt-2 text-sm hover:underline"
+            >
+              Upload Photo
+            </button>
           </div>
 
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* VendorACC */}
+
+            {/* Name */}
+            <div>
+              <label htmlFor="name" className="block text-gray-600 mb-2">
+                Name<span className="text-red-500">*</span>
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="  Vendor Name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                required
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label htmlFor="contactNum" className="block text-gray-600 mb-2">
+                Phone Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                id="contactNum"
+                name="contactNum"
+                type="tel"
+                placeholder="Contact No"
+                value={formData.contactNum}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                required
+              />
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label htmlFor="currency" className="block text-gray-600 mb-2">
+                Currency
+              </label>
+              <select
+                id="currency"
+                name="currency"
+                value={formData.currency}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg p-3 bg-white focus:outline-none focus:ring focus:ring-blue-300"
+              >
+                <option value="">Select Currency</option>
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+              </select>
+            </div>
+
+            {/* PAN Number */}
+            <div>
+              <label htmlFor="panNum" className="block text-gray-600 mb-2">
+                PAN Number
+              </label>
+              <input
+                id="panNum"
+                name="panNum"
+                type="text"
+                placeholder="Vendor PAN "
+                value={formData.panNum}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+              />
+            </div>
+
+            {/* Registration Number */}
+            <div>
+              <label htmlFor="registrationNum" className="block text-gray-600 mb-2">
+                Registration Number
+              </label>
+              <input
+                id="registrationNum"
+                name="registrationNum"
+                type="text"
+                placeholder=" Registration No "
+                value={formData.registrationNum}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+              />
+            </div>
+
+            {/* Billing Address */}
+            <div className="md:col-span-2">
+              <label htmlFor="address" className="block text-gray-600 mb-2">
+                Address
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                placeholder=" Vendor Address"
+                value={formData.address}
+                onChange={handleInputChange}
+                rows="4"
+                className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring focus:ring-blue-300"
+              ></textarea>
+            </div>
+          </div>
           <div className="flex items-center">
             <Label label="Active" className="font-semibold text-blue-600" />
             <Checkbox_with_words
               name="active"
-              cls="m-1 text-blue-700"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
               checked={formData.active}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
             />
           </div>
-
-          <div className="text-center">
-            <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-full mt-4">
-              Save
-            </button>
+          {/* Submit and Reset Buttons */}
+          <div className="mt-6 flex justify-between">
             <button
               type="button"
-              onClick={() =>
-                setFormData({
-                  vendorAccountNo: "",
-                  name: "",
-                  Address: "",
-                  currency: "",
-                  registrationNo: "",
-                  pan: "",
-                  contactNo: "",
-                  active: false,
-                })
-              }
-              className="bg-red-500 text-white py-2 px-4 rounded-full mt-4 ml-4"
+              onClick={handleReset}
+              className="text-gray-500 hover:text-gray-700"
             >
               Reset
             </button>
-            <button type="button" onClick={handleCancel} className="ml-3 bg-zinc-600 text-white py-2 px-4 rounded-full mt-4">
-              Cancel
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                className="bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-700"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-700"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
-  );
-};
+    </form>
+  </>
+);
+}
 
 export default VendorForm;

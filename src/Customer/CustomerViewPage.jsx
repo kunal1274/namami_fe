@@ -8,10 +8,16 @@ import "react-toastify/dist/ReactToastify.css";
 
 const baseUrl = "https://befr8n.vercel.app";
 const secondUrl = "/fms/api/v0";
-const thirdUrl = "/customer";
+const thirdUrl = "/items";
 const mergedUrl = `${baseUrl}${secondUrl}${thirdUrl}`;
 
-const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, handleSaveCustomer, toggleView, handleCancel }) => {
+const CustomerViewPage = ({
+  customerId,
+  customer,
+  goBack,
+  handleSaveCustomer,
+  toggleView,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isEdited, setIsEdited] = useState(false);
   const [formData, setFormData] = useState({ ...customer });
@@ -20,11 +26,69 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("list");
   const { id } = useParams(); // Use id from URL if needed
+  const [file, setFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploaded, setIsUploaded] = useState(false);
+
+  const [files, setFiles] = useState([]);
+
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [completedFiles, setCompletedFiles] = useState([]);
+
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFiles((prev) => [...prev, selectedFile]);
+      setUploadProgress((prev) => ({ ...prev, [selectedFile.name]: 0 }));
+    }
+  };
+
+  const handleUpload = () => {
+    if (files.length === 0) return;
+
+    const fileToUpload = files.find(
+      (file) =>
+        !(uploadedFiles.includes(file) || completedFiles.includes(file.name))
+    );
+
+    if (fileToUpload) {
+      // Simulate file upload progress
+      const interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          const progress = prev[fileToUpload.name] || 0;
+          if (progress >= 100) {
+            clearInterval(interval);
+            setUploadedFiles((prevUploaded) => [...prevUploaded, fileToUpload]);
+
+            // Hide loader after 3 seconds
+            setTimeout(() => {
+              setCompletedFiles((prev) => [...prev, fileToUpload.name]);
+            }, 3000);
+
+            return { ...prev, [fileToUpload.name]: 100 };
+          }
+          return { ...prev, [fileToUpload.name]: progress + 10 };
+        });
+      }, 200); // Simulate progress increment every 200ms
+    }
+  };
+
+  const handleDelete = (fileName) => {
+    setFiles((prev) => prev.filter((file) => file.name !== fileName));
+    setUploadProgress((prev) => {
+      const { [fileName]: _, ...remaining } = prev;
+      return remaining;
+    });
+    setUploadedFiles((prev) => prev.filter((file) => file.name !== fileName));
+    setCompletedFiles((prev) => prev.filter((name) => name !== fileName));
+  };
 
   useEffect(() => {
     async function fetchCustomerDetail() {
       try {
-        const response = await axios.get(`https://befr8n.vercel.app/fms/api/v0/customer/${customerId || id}`);
+        const response = await axios.get(
+          `https://befr8n.vercel.app/fms/api/v0/customers/${customerId || id}`
+        );
         if (response.status === 200) {
           setCustomerDetail(response.data.data);
           setFormData(response.data.data); // Sync form data
@@ -33,7 +97,9 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
         }
       } catch (error) {
         console.error("Error fetching customer details", error);
-        const errorMessage = error.response?.data?.message || "An unexpected error occurred. Please try again.";
+        const errorMessage =
+          error.response?.data?.message ||
+          "An unexpected error occurred. Please try again.";
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -43,22 +109,25 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
     fetchCustomerDetail();
   }, [customerId, id]);
 
-
   const handleUpdate = async () => {
     if (window.confirm("Are you sure you want to update this customer?")) {
-
       setLoading(true);
       toast.success("Customer updated successfully!");
       console.log("customer update");
       try {
-        const response = await axios.put(`${mergedUrl}/${customerId}`, formData, {
-          withCredentials: false,
-        });
+        const response = await axios.put(
+          `${mergedUrl}/${customerId}`,
+          formData,
+          {
+            withCredentials: false,
+          }
+        );
 
         setCustomerDetail(response.data); // Update customer details with response
         setIsEditing(false); // Exit edit mode
       } catch (err) {
-        const errorMessage = err.response?.data?.message || "An unexpected error occurred.";
+        const errorMessage =
+          err.response?.data?.message || "An unexpected error occurred.";
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -68,67 +137,27 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
     toggleView();
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === "contactNum") {
-      // Allow only numeric values and limit to 10 digits
-      const numericValue = value.replace(/[^0-9]/g, "");  // Remove any non-numeric characters
-      if (numericValue.length <= 10) {
-        setFormData((prevData) => ({
-          ...prevData,
-          [name]: numericValue,
-        }));
-      }
-      return;
-    }
-
-    if (name === "pan" && value.length > 10) return;
-    if (name === "registrationNum" && value.length > 16) return;
-
-    if (name === "currency" || name === "pan" || name === "registrationNum") {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value.toUpperCase(),
-      }));
-    } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value,
-      }));
-    }
-  };
-
   const handleEdit = () => {
     setIsEdited(true);
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    handleSaveCustomer(formData); // Save customer data
-    setIsEditing(false); // Exit edit mode
 
 
-    // Save logic here
-    console.log("Data saved!");
-    setIsEdited(false); // Reset state after saving
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
   };
-  const back = () => {
-    if (toggleView) {
-      console.log("toggle function working");
-      toggleView(); // Execute the toggleView function
-      setView("form");
-    } else {
-      console.log("error in running function");
-    }
-  };
-
   return (
     <>
-      <h1 className="text-2xl  bg-black-400 font-bold mb-4 text-center">  {formData.code || ""} {formData.name || ""}
+      <h1 className="text-2xl  bg-black-400 font-bold mb-4 text-center">
+        {" "}
+        {formData.code || ""} {formData.name || ""}
       </h1>
-      <h1 className="text-2xl bg-black-400 font-bold mb-4 text-center">
-      </h1>
+      <h1 className="text-2xl bg-black-400 font-bold mb-4 text-center"></h1>
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="bg-white shadow-lg rounded-lg w-full max-w-2xl p-8">
           {/* Customer Photo */}
@@ -149,7 +178,10 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
                 />
               </svg>
             </div>
-            <button type="button" className="text-blue-600 mt-2 text-sm hover:underline">
+            <button
+              type="button"
+              className="text-blue-600 mt-2 text-sm hover:underline"
+            >
               Customer Photo
             </button>
           </div>
@@ -187,9 +219,6 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
               />
             </div>
 
-
-
-
             {/* Currency */}
             <div>
               <label htmlFor="currency" className="block text-gray-600 mb-2">
@@ -219,7 +248,13 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
                 type="text"
                 name="panNum"
                 value={formData.panNum || ""}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase(); // Convert to uppercase
+                  if (value.length <= 10) {
+                    // Correctly update the formData state
+                    setFormData({ ...formData, panNum: value }); // Ensure the correct key is being updated
+                  }
+                }}
                 className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
                 disabled={!isEditing}
               />
@@ -227,22 +262,34 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
 
             {/* Registration Number */}
             <div>
-              <label htmlFor="registrationNum" className="block text-gray-600 mb-2">
-                Registration Number
-              </label>
-              <input
-                type="text"
-                name="registrationNum"
-                value={formData.registrationNum || ""}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
-              />
-            </div>
+  <label
+    htmlFor="registrationNum"
+    className="block text-gray-600 mb-2"
+  >
+    Registration Number
+  </label>
+  <input
+    type="text"
+    name="registrationNum"
+    value={formData.registrationNum || ""}
+    onChange={(e) => {
+      const value = e.target.value.toUpperCase(); // Convert to uppercase
+      if (value.length <= 16) {
+        // Correctly update the formData state
+        setFormData({ ...formData, registrationNum: value }); // Ensure the correct key is being updated
+      }
+    }}
+    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+    disabled={!isEditing} // Disable input if not editing
+  />
+</div>
 
             {/* Billing Address */}
             <div className="md:col-span-2">
-              <label htmlFor="billingAddress" className="block text-gray-600 mb-2">
+              <label
+                htmlFor="billingAddress"
+                className="block text-gray-600 mb-2"
+              >
                 Address
               </label>
               <textarea
@@ -255,15 +302,73 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
               ></textarea>
             </div>
           </div>
+
           <div className="flex items-center">
-            <Label label="Active" className="font-semibold text-blue-600" />
-            <Checkbox_with_words
-              name="active"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
-              checked={formData.active}
-              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-            />
+  <label className="font-semibold text-blue-600">Active</label>
+  <Checkbox_with_words
+    name="active"
+    value={formData?.active || ""}
+    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+    checked={formData.active}
+    onChange={(e) => {
+      if (isEditing) {
+        setFormData({ ...formData, active: e.target.checked });
+      }
+    }} 
+    disabled={!isEditing}
+  />
+</div>
+
+          <div className="mt-6">
+            <div className="mb-4">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="border p-2"
+              />
+              <button
+                onClick={handleUpload}
+                className="ml-4 bg-blue-500 text-white px-4 py-2 rounded"
+                disabled={
+                  files.length === 0 ||
+                  files.every((file) => completedFiles.includes(file.name))
+                }
+              >
+                Upload
+              </button>
+            </div>
+
+            {/* Display File List with TODO Numbers */}
+            {files.map((file, index) => (
+              <div key={file.name} className="mb-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-700 text-sm">
+                    {`TODO ${index + 1}: ${file.name}`}
+                  </p>
+                  <button
+                    onClick={() => handleDelete(file.name)}
+                    className="text-red-500 font-bold text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+                {!completedFiles.includes(file.name) && (
+                  <div>
+                    <div className="relative h-6 bg-gray-200 rounded">
+                      <div
+                        className="absolute top-0 left-0 h-full bg-green-500 rounded"
+                        style={{ width: `${uploadProgress[file.name] || 0}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-sm mt-1">
+                      {uploadProgress[file.name] || 0}% uploaded
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
+
           {/* Submit Button */}
           <div className="mt-8 text-center">
             <button
@@ -283,10 +388,11 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
               type="button"
               onClick={handleUpdate}
               disabled={!isEdited}
-              className={`px-6 py-3 rounded-lg text-white focus:outline-none focus:ring focus:ring-blue-300 ${isEdited
+              className={`px-6 py-3 rounded-lg text-white focus:outline-none focus:ring focus:ring-blue-300 ${
+                isEdited
                   ? "bg-zinc-500 hover:bg-blue-600" // Normal active state
                   : "bg-gray-300 cursor-not-allowed opacity-50" // Disabled state
-                }`}
+              }`}
             >
               Save
             </button>
@@ -298,4 +404,3 @@ const CustomerViewPage = ({ customerId, customer, handleAddCustomer, goBack, han
 };
 
 export default CustomerViewPage;
-

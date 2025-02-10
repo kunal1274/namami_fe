@@ -7,7 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 const baseUrl = "https://befr8n.vercel.app";
 const secondUrl = "/fms/api/v0";
-const thirdUrl = "/customer";
+const thirdUrl = "/customers";
 const mergedUrl = `${baseUrl}${secondUrl}${thirdUrl}`;
 
 function CustomerForm({ handleCancel }) {
@@ -103,10 +103,15 @@ function CustomerForm({ handleCancel }) {
         }
       );
 
-      toast.success("Customer created successfully!",);
+      toast.success("Customer created successfully!", {
+        position: "top-right", // Adjust position if necessary
+        autoClose: 1000,
+      });
       console.log("Customer created successfully");
+      setTimeout(() => {
       handleCancel();
-      toast.success("Customer created successfully!",);
+    }, 3000);
+     
       setCustomerList((prev) => [...prev, response.data.data]);
       setFormData({
         name: "",
@@ -119,8 +124,12 @@ function CustomerForm({ handleCancel }) {
       });
     }
     catch (error) {
-
-      toast.error("Customer save error! Please try again.");
+      toast.error("Customer save error! Please try again.", {
+        position: "top-right", // Adjust position if necessary
+        autoClose: 1000,
+      });
+   
+     
     }
   };
 
