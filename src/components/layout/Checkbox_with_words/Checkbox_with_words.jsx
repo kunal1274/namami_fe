@@ -43,31 +43,11 @@ const CheckboxWithWords = ({
             // disabled={!isEditing}
           />
         </span>
-        <h6 className={cls}>{label}</h6>
-        <a href={linkUrl} onClick={handleLinkClick} className={className}>
-          {linkText}
-        </a>
-        <h6 className={className}>{text}</h6>
+        
       </div>
 
       {/* Modal for Terms and Conditions */}
-      {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* Modal overlay */}
-          <div
-            className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm"
-            onClick={closeModal}
-          ></div>
-          
-          {/* Modal content */}
-          <div className="term bg-white rounded-lg p-6 h-3/4 overflow-auto relative">
-            <button onClick={closeModal} className="absolute top-2 right-2 text-black">
-              Close
-            </button>
-            <TermsAndCondition /> {/* Terms and Conditions Component */}
-          </div>
-        </div>
-      )}
+     
     </div>
   );
 };

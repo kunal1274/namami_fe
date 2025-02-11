@@ -1,190 +1,319 @@
-import React, { useState } from "react";
-import Label from "../zoho/Azoho/Common/Label/Label";
-import TextInput from "../zoho/Azoho/Common/Input/Input";
-import Checkbox_with_words from "../components/layout/Checkbox_with_words/Checkbox_with_words";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-const ItemForm = ({ handleSaveItem, handleCancel }) => {
-  const initialFormState = {
-    itemNo: "",
-    itemName: "",
+
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const baseUrl = "https://befr8n.vercel.app";
+const secondUrl = "/fms/api/v0";
+const thirdUrl = "/items";
+const mergedUrl = `${baseUrl}${secondUrl}${thirdUrl}`;
+
+function ItemForm({ handleCancel }) {
+  const [customerList, setCustomerList] = useState([]);
+  const [formData, setFormData] = useState({
+    itemNum: "",
+
+    name: "",
     type: "",
     description: "",
     unit: "",
     price: "",
     active: false,
-  };
+  });
 
-  const [formData, setFormData] = useState(initialFormState);
-  const [error, setError] = useState("");
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    // Input validation directly within handleChange
-    const newValue = 
-      name === "itemNo" ? value.replace(/[^a-zA-Z0-9]/g, "") : 
-      name === "itemName" ? value.charAt(0).toUpperCase() + value.slice(1) :
-      name === "price" ? value.replace(/[^0-9.]/g, "") : // Allows decimal points in price
-      value;
-
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: type === "checkbox" ? checked : newValue,
+  const [file, setFile] = useState("");
+  const [message, setMessage] = useState("");
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
+  // Generate a unique item account number
+  const generateAccountNo = (items) => {
+    const lastAccountNo = items
+      .map((item) => parseInt(item.itemAccountNo.split("_")[1], 10))
+      .filter((num) => !isNaN(num))
+      .reduce((max, num) => Math.max(max, num), 0);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // Validation logic
-    if (!formData.itemNo || !formData.itemName || !formData.price 
-        || (formData.description && formData.description.split('\n').length > 4) ||
-        Number(formData.price) <= 0) {
-      setError("Please fill all required fields with valid data. Item Name should start with a capital letter. Unit must be selected, and Price should be numeric.");
-      return;
-    }
-
-    // Saving data
-    handleSaveItem(formData);
-    alert("Item saved successfully!");
-    setError("");
-    setFormData(initialFormState);
+    return `CUST_${String(lastAccountNo + 1).padStart(3, "0")}`;
   };
 
+  // Fetch items
+  useEffect(() => {
+    toast.info("item form opened!");
+
+    async function loadCustomers() {
+      try {
+        const response = await axios.get(mergedUrl, {
+          headers: {
+            // Authorization: `Bearer ${tokenCookie}`, // Uncomment if token is required
+          },
+          withCredentials: false,
+        });
+        console.log("Customer data fetched:", response.data);
+        setCustomerList(response.data.data);
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+      }
+    }
+
+    loadCustomers();
+  }, []);
+
+  // Create New Customer
+  const createItem = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(
+        mergedUrl,
+        { ...formData },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast.success("Customer created successfully!");
+      console.log("Customer created successfully");
+      handleCancel();
+      toast.success("Customer created successfully!");
+      setCustomerList((prev) => [...prev, response.data.data]);
+      setFormData({
+        itemNum: "",
+        name: "",
+        description: "",
+        type: "",
+        unit: "",
+        price: "",
+        active: "",
+      });
+    } catch (error) {
+      toast.error("Customer save error! Please try again.");
+    }
+  };
+
+  // Reset the form
   const handleReset = () => {
-    setFormData(initialFormState);
-    setError("");
+    setFormData({
+      name: "",
+      Name: "",
+      type: "",
+      description: "",
+      unit: "",
+      price: "",
+      active: false,
+    });
+    setMessage("");
+    const accountNo = generateAccountNo(customerList);
+    setFormData((prev) => ({ ...prev, customerAccountNo: accountNo }));
   };
 
   return (
-    <div className="bg-blue-400 mt-44 p-8 min-h-screen">
-      <div className="bg-slate-50 rounded-lg p-6">
-      <header className="text-center bg-white py-2 border border-blue-300 rounded-full mb-5">
-        <h2 className="text-lg font-bold  text-blue-500">Item Creation Form </h2>
-      </header>
-
-
-        {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label label="Item No." className="font-semibold text-blue-600" />
-              <TextInput
-                name="itemNo"
-                placeholder="Enter item number"
-                value={formData.itemNo}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="Item Name" className="font-semibold text-blue-600" />
-              <TextInput
-                name="itemName"
-                placeholder="Enter item name"
-                value={formData.itemName}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <Label label="Type" className="font-semibold text-blue-600" />
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
+    <>
+      <h1 className="text-2xl font-bold mb-4 text-center">Add New Item</h1>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white shadow-lg rounded-lg w-full max-w-2xl p-8">
+          <form onSubmit={createItem}>
+            {/* Item Photo */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-gray-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 11c1.656 0 3-1.344 3-3s-1.344-3-3-3-3 1.344-3 3 1.344 3 3 3zm0 2c-2.761 0-5 2.239-5 5v3h10v-3c0-2.761-2.239-5-5-5z"
+                  />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="text-blue-600 mt-2 text-sm hover:underline"
               >
-                <option value="">Select type (optional)</option>
-                <option value="goods">Goods</option>
-                <option value="service">Service</option>
-              </select>
+                Upload Item Photo
+              </button>
             </div>
 
-            <div>
-              <Label label="Description" className="font-semibold text-blue-600" />
-              <textarea
-                name="description"
-                placeholder="Enter item description"
-                value={formData.description}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                rows="4"
+            {/* Form Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="itemName" className="block text-gray-600 mb-2">
+                  Item Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="itemCode" className="block text-gray-600 mb-2">
+                  Item Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="itemNum"
+                  value={formData.itemNum}
+                  onChange={
+                    (e) =>
+                      setFormData({
+                        ...formData,
+                        itemNum: e.target.value.toUpperCase(),
+                      }) // Update itemNum
+                  }
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="price" className="block text-gray-600 mb-2">
+                  Price <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (!isNaN(value) && Number(value) >= 0) {
+                      // Ensure input is a positive number
+                      setFormData({ ...formData, price: value });
+                    } else {
+                      setFormData({ ...formData, price: "" }); // Reset if input is invalid
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="type" className="block text-gray-600 mb-2">
+                  Type
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                >
+                  <option value="">Select type</option>
+                  <option value="Goods">Goods</option>
+                  <option value="Services">Services</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="unit" className="block text-gray-600 mb-2">
+                  Unit
+                </label>
+                <select
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                >
+                  <option value="">Select unit</option>
+
+                  <option value="mt">MT - Megatons</option>
+
+                  <option value="kg">KG - Kilogram</option>
+
+                  <option value="ml">ML - Mega Liter</option>
+                  <option value="mt ">metric tonnes</option>
+                  <option value="ea">Ea - Each</option>
+                  <option value="ea"> lbs - pounds</option>
+
+                  <option value="hr">Hour</option>
+                  <option value="min">Minutes</option>
+
+                  <option value="Carton - Carton Box">
+                    Carton - Carton Box
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="description"
+                  className="block text-gray-600 mb-2"
+                >
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring focus:ring-blue-300"
+                />
+              </div>
+            </div>
+
+  
+
+            <div className="mt-4">
+              <label className="block text-gray-600 mb-2">
+                Upload Item Photo
+              </label>
+              <input
+                type="file"
+                onChange={(e) => setFile(e.target.files[0])}
+                className="border p-2 w-full"
               />
             </div>
 
-            <div>
-              <Label label="Unit" className="font-semibold text-blue-600" />
-              <select
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
+            {/* Buttons */}
+            <div className="mt-6 flex justify-between">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-gray-500 hover:text-gray-700"
               >
-                <option value="">Select unit</option>
-                <option value="MT-Megatons">MT-Megatons</option>
-                <option value="KG-Kilogram">KG-Kilogram</option>
-                <option value="ML-Mega Liter">ML-Mega Liter</option>
-                <option value="Ea-Each">Ea-Each</option>
-                <option value="Pic-Pieces">Pic-Pieces</option>
-                <option value="Box-Box">Box-Box</option>
-                <option value="Carton-Carton Box">Carton-Carton Box</option>
-              </select>
+                Reset
+              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-700"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-700"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-
-            <div>
-              <Label label="Price" className="font-semibold text-blue-600" />
-              <TextInput
-                name="price"
-                placeholder="Enter item price"
-                value={formData.price}
-                onChange={handleChange}
-                className="border border-green-600 w-full p-2 rounded-lg"
-                required
-                type="text"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center">
-            <Label label="Active" className="font-semibold text-blue-600" />
-            <Checkbox_with_words
-              name="active"
-              cls="m-1 text-blue-700"
-              checked={formData.active}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="text-center">
-            <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-full mt-4">
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="bg-red-500 text-white py-2 px-4 rounded-full mt-4 ml-4"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              className="ml-3 bg-zinc-700 text-white py-2 px-4 rounded-full mt-4"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
-};
+}
 
 export default ItemForm;
+
+
+
+
